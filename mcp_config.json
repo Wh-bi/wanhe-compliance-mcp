@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "wanhe-compliance": {
+      "command": "python",
+      "args": ["mcp_compliance_server.py"],
+      "description": "中文内容合规检查：广告法违禁词 / AI生成内容标识 / 17项自查问卷",
+      "homepage": "https://wanhetools.top/compliance-check"
+    }
+  }
+}

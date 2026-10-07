@@ -1,0 +1,39 @@
+{
+  "name": "wanhe-compliance-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Chinese content compliance checking: advertising-law prohibited terms, AI-generated content labeling (China AI Labeling Measures + GB 45438-2025), and a 17-item compliance self-assessment. Zero external dependencies.",
+  "main": "mcp_compliance_server.py",
+  "files": [
+    "mcp_compliance_server.py",
+    "mcp_config.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "python mcp_compliance_server.py",
+    "selftest": "python mcp_compliance_server.py --selftest"
+  },
+  "bin": {
+    "wanhe-compliance-mcp": "mcp_compliance_server.py"
+  },
+  "engines": {
+    "python": ">=3.10"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "compliance",
+    "advertising-law",
+    "china",
+    "chinese",
+    "ai-labeling",
+    "aigc",
+    "content-review",
+    "ad-law",
+    "regulatory",
+    "claude",
+    "cursor"
+  ],
+  "license": "MIT",
+  "homepage": "https://wanhetools.top/compliance-check"
+}
