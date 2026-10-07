@@ -117,6 +117,68 @@ def _normalize(s):
     return s
 
 
+# ---------------------------------------------------------------------------
+# 法条引用识别（2026-10-07 新增，与沙箱引擎同步）
+# ---------------------------------------------------------------------------
+# 合规写作必然引用法条，而法条原文里就包含被禁用的词
+#   ——「《广告法》第9条禁止使用免检、特供等用语」是引用，不是违规使用。
+_CITE_QUOTES = "\u300c\u300d\u300e\u300f\u201c\u201d\"\'\u300a\u300b\u3010\u3011\u3014\u3015<>"
+_CITE_MARKERS = (
+    "等用语", "等表述", "等词", "等字样", "等说法", "等措辞",
+    "这类", "此类", "所谓", "称为", "叫做",
+    "禁止使用", "不得使用", "禁止出现", "不得出现", "禁用", "违禁",
+)
+_LAW_NAME = re.compile(r"\u300a[^\u300b]{2,30}(法|办法|规定|条例|标准|细则|通知|意见)\u300b")
+_CLAUSE = re.compile(r"第\s*[0-9\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+\s*(条|款|项)|GB\s*\d+")
+
+
+def _is_citation(text, start, end):
+    """判断命中是否处于"引用/元语言"语境"""
+    l = text[start - 1] if start > 0 else ""
+    r = text[end] if end < len(text) else ""
+    # 注意：必须排除空串 —— `"" in "任意字符串"` 在 Python 里返回 True
+    if (l and l in _CITE_QUOTES) or (r and r in _CITE_QUOTES):
+        return True
+    win = text[max(0, start - 14):min(len(text), end + 14)]
+    for mk in _CITE_MARKERS:
+        i = win.find(mk)
+        if i >= 0:
+            mk_pos = max(0, start - 14) + i
+            dist = min(abs(mk_pos - end), abs(mk_pos + len(mk) - start))
+            if dist <= 8:
+                return True
+    s = 0
+    for x in ("\u3002", "\uff1b", "\uff01", "\uff1f", "\n"):
+        j = text.rfind(x, 0, start)
+        if j > s:
+            s = j + 1
+    e = len(text)
+    for x in ("\u3002", "\uff1b", "\uff01", "\uff1f", "\n"):
+        j = text.find(x, end)
+        if j >= 0:
+            e = min(e, j)
+    sent = text[s:e]
+    return bool(_LAW_NAME.search(sent) or _CLAUSE.search(sent))
+
+
+def split_citations(issues, text):
+    kept, suppressed = [], []
+    for it in issues:
+        m = re.search(r"第\s*(\d+)\s*字符", it.get("position", ""))
+        if not m:
+            kept.append(it)
+            continue
+        st = int(m.group(1)) - 1
+        en = st + len(it.get("matched") or "")
+        if _is_citation(text, st, en):
+            it2 = dict(it)
+            it2["suppressed_reason"] = "引用法规/讨论法条语境"
+            suppressed.append(it2)
+        else:
+            kept.append(it)
+    return kept, suppressed
+
+
 def _dedupe(issues):
     """同一位置被多条命中时只保留最长的一条"""
     def pos(it):
@@ -151,6 +213,9 @@ def check_text(text):
         except re.error:
             continue
     issues = _dedupe(issues)
+    # 引用识别（2026-10-07，与沙箱引擎同步）：
+    # 把「引用法规/讨论法条」与「真的违规使用」分开 —— 合规写作必然引用法条
+    issues, _suppressed = split_citations(issues, text)
     counts = {"risk": len(issues), "warn": 0, "info": 0, "total": len(issues)}
     return {
         "ok": True,
@@ -162,6 +227,7 @@ def check_text(text):
                    "未发现免费规则覆盖的问题（不等于完全合规）",
         "counts": counts,
         "issues": issues,
+        "suppressed": _suppressed,
         "coverage": {
             "rules_in_free": len(FREE_RULES),
             "rules_in_cloud": 21,
