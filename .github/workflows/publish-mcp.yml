@@ -1,0 +1,53 @@
+name: Publish to MCP Registry
+
+# 通过官方 MCP Registry 发布（OIDC 认证，不需要 npm / 不需要本地二进制）
+# 触发：推 v* 标签，或手动触发
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write      # OIDC 认证所必需
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify server.json
+        run: |
+          echo "--- server.json ---"
+          cat server.json
+          python3 -c "import json;d=json.load(open('server.json'));print('name:',d['name']);print('version:',d['version']);print('remotes:',len(d.get('remotes',[])))"
+
+      - name: Smoke-test the public MCP endpoint (Streamable HTTP)
+        run: |
+          set -e
+          echo "GET /mcp"
+          curl -sS -m 30 -H 'Accept: application/json' https://mcp.wanhetools.top/mcp | head -c 400
+          echo
+          echo "POST initialize"
+          curl -sS -m 30 -X POST https://mcp.wanhetools.top/mcp \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            | head -c 600
+          echo
+          echo "POST tools/list"
+          curl -sS -m 30 -X POST https://mcp.wanhetools.top/mcp \
+            -H 'Content-Type: application/json' -H 'Accept: application/json' \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | head -c 600
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --help | head -20
+
+      - name: Authenticate to MCP Registry (OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to MCP Registry
+        run: ./mcp-publisher publish

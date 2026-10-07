@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Wh-bi/wanhe-compliance",
+  "title": "Wanhe Compliance — Chinese Content Compliance Checker",
+  "description": "Chinese content compliance checking for AI agents. Detects advertising-law prohibited terms (China Advertising Law Art. 9 superlatives, Art. 17-18 disease-treatment and health-food claims, Art. 28 false advertising) and flags AI-generated content labeling requirements (Measures for Labeling AI-Generated Synthetic Content Art. 4-5 + mandatory national standard GB 45438-2025). Returns per-issue findings with the exact legal provision and a suggested fix. Free tier: 2000 chars/request, 30 requests/hour per IP. Rule engine (reproducible), not model inference.",
+  "version": "1.1.0",
+  "websiteUrl": "https://wanhetools.top/compliance-check",
+  "repository": {
+    "url": "https://github.com/Wh-bi/wanhe-compliance-mcp",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.wanhetools.top/mcp"
+    },
+    {
+      "type": "streamable-http",
+      "url": "https://wanhetools.top/mcp"
+    }
+  ]
+}
