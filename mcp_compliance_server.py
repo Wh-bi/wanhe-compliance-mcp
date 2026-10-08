@@ -266,6 +266,234 @@ def check_ai_label_free(text):
 # MCP 工具定义
 # ---------------------------------------------------------------------------
 
+
+# ---------------------------------------------------------------------------
+# 英文规则（免费版内嵌 12 条 · 与沙箱英文引擎同源，取高频项）
+# ---------------------------------------------------------------------------
+# 为什么内嵌：MCP 包要能独立发布，不能依赖 sandbox 目录。
+# 规则来源：sandbox/compliance_engine_en.py（该引擎有 28/28 回归测试）。
+# 边界同中文：免费给高频 12 条，完整 18 条 + 图片审计 + 问卷走云端。
+
+FREE_RULES_EN = [
+    # ── AI 披露（EU AI Act Art.50 语境）
+    (r"\b(deep\s?fake|deepfake)s?\b",
+     "AI disclosure: deep fake",
+     "EU AI Act Art.50(4): deployers of deep fakes must disclose that content "
+     "is artificially generated or manipulated",
+     "Add a clear visible disclosure and machine-readable provenance "
+     "where possible", "risk"),
+    (r"\b(AI|artificial intelligence|synthetic)\b[^.]{0,120}"
+     r"\b(without|no|lacking|missing)\b[^.]{0,60}"
+     r"\b(disclosure|label|labell?ing|marking|provenance|content credentials|"
+     r"metadata|watermark)\b",
+     "AI disclosure: synthetic content unmarked",
+     "EU AI Act Art.50(2): synthetic content must be marked in a "
+     "machine-readable format",
+     "Add machine-readable marking (e.g. C2PA Content Credentials) and a "
+     "visible label", "risk"),
+    (r"\bchat\s?bots?\b[^.]{0,140}\b(does not|doesn't|do not|don't|without|no|"
+     r"fails to)\b[^.]{0,60}\b(tell|inform|notify|disclose|reveal)\b",
+     "AI disclosure: chatbot interaction not disclosed",
+     "EU AI Act Art.50(1): users must be informed they interact with an AI system",
+     "Add an upfront notice that the user is interacting with an AI system",
+     "risk"),
+
+    # ── 夸大 / 绝对化
+    (r"\b(the best|the cheapest|the greatest|number one|#1|world'?s best|"
+     r"unbeatable|unmatched|the most advanced)\b",
+     "Unsubstantiated superlative",
+     "EU: Unfair Commercial Practices Directive 2005/29/EC Annex I; "
+     "US: FTC Guides on endorsements",
+     "Replace with a specific verifiable claim, or remove", "risk"),
+    (r"\b(100\s?%|guaranteed|risk[\s-]?free|zero risk|no risk|"
+     r"absolutely safe|perfectly safe)\b",
+     "Absolute / guarantee claim",
+     "EU: UCPD 2005/29/EC; US: FTC Act Section 5",
+     "Only use with substantiation; otherwise rephrase", "risk"),
+    (r"\b(forever|permanently valid|permanently available|"
+     r"never\s+(be\s+)?(expires?|withdrawn|ends?|revoked|changed)|"
+     r"eternal(ly)?\s+guarantee)\b",
+     "Indefinite promise",
+     "EU: UCPD 2005/29/EC (misleading commercial practices)",
+     "State the actual duration and conditions", "warn"),
+
+    # ── 健康功效
+    (r"\b(cures?|heals?|treats?|reverses?)\b[^.]{0,40}\b"
+     r"(diabetes|cancer|heart disease|hypertension|high blood pressure|"
+     r"asthma|arthritis|depression|insomnia|alzheimer'?s?)\b",
+     "Health claim: disease treatment",
+     "EU: Regulation (EC) No 1924/2006; US: FDA (drug claims require approval)",
+     "Remove disease-treatment claims from non-medicinal products", "risk"),
+    (r"\b(stop|instead of|replace)\b[^.]{0,40}\b(taking )?(your )?"
+     r"(medication|medicine|prescription|pills?|drugs?)\b",
+     "Health claim: substitute for medication",
+     "EU: Regulation (EC) No 1924/2006; national medicines advertising rules",
+     "Never suggest replacing prescribed treatment", "risk"),
+
+    # ── 金融承诺
+    (r"\bguaranteed\b[^.]{0,30}\b(returns?|profit|income|yield|roi)\b",
+     "Financial claim: guaranteed returns",
+     "EU: MiFID II / PRIIPs; US: SEC / FINRA rules on performance claims",
+     "Remove any guarantee of investment performance", "risk"),
+    (r"\b(can\s?not|cannot|can'?t)\s+lose\b",
+     "Financial claim: cannot lose",
+     "EU: MiFID II; US: FINRA 2210 (misleading statements)",
+     "Remove absolute loss-prevention claims", "risk"),
+    (r"\b(risk[\s-]?free|zero risk|no risk)\b[^.]{0,40}"
+     r"\b(invest|investment|trading|returns?|profit)\b",
+     "Financial claim: risk-free investment",
+     "EU: MiFID II; US: SEC Rule 10b-5 / FINRA 2210",
+     "Describe actual risks; remove risk-free framing", "risk"),
+
+    # ── 漂绿
+    (r"\b(100\s?%|fully|completely|totally)\b[^.]{0,24}"
+     r"\b(eco[\s-]?friendly|environmentally friendly|sustainable|green|"
+     r"carbon neutral|climate neutral)\b",
+     "Green claim: absolute environmental claim",
+     "EU: UCPD 2005/29/EC as amended by Directive (EU) 2024/825 "
+     "(substantiation required)",
+     "Substantiate with verifiable data or narrow the claim", "risk"),
+]
+
+# 英文引用识别（与沙箱英文引擎同源的四类正面证据）
+_EN_CITE_QUOTES = "\u201c\u201d\u2018\u2019\u300c\u300d\u300e\u300f\"'<>"
+_EN_CITE_MARKERS = (
+    "such as", "e.g.", "for example", "including", "referred to as",
+    "known as", "must not", "shall not", "prohibited", "not permitted",
+    "is prohibited", "is banned", "unlawful", "illegal", "flags", "detect",
+    "check", "identifies", "example", "claims like", "terms such",
+)
+_EN_META_MARKERS = (
+    "checklist", "flags ", "detects ", "checks for", "identifies ",
+    "scanner", "audit tool", "rule engine", "this tool", "the tool ",
+    "guidance says", "guidelines", "handbook", "policy states",
+    "prohibited terms", "banned words",
+)
+_EN_PROHIBITION_MARKERS = (
+    "must not be described as", "shall not be described as",
+    "must be substantiated", "must not claim", "shall not claim",
+    "must not use", "shall not use", "must not state", "shall not state",
+    "terms such as", "words such as", "claims such as", "phrases such as",
+)
+_EN_LAW = re.compile(
+    r"\b(Article|Art\.|Section|Sec\.|Clause|Recital|Regulation|Directive|"
+    r"GDPR|CCPA|FTC|UCPD|MiFID)\s*\(?\s*\d", re.I)
+
+
+def _en_is_citation(text, start, end):
+    """英文引用识别 —— 只依赖四类**正面证据**。
+
+    ★ 重要教训（2026-10-08）：**"否定"不能作为引用信号**。
+      承诺性违规天然含否定（cannot lose / never withdrawn / does not disclose），
+      若把它当引用信号，会把该报的违规全部抑制掉。
+      这是我们在英文引擎上写错 3 轮才改对的。
+    """
+    l = text[start - 1] if start > 0 else ""
+    r = text[end] if end < len(text) else ""
+    # 必须显式排除空串（`"" in "任意字符串"` 在 Python 里返回 True）
+    if (l and l in _EN_CITE_QUOTES) and (r and r in _EN_CITE_QUOTES):
+        return True, "wrapped in quotes"
+    if (l and l in _EN_CITE_QUOTES) or (r and r in _EN_CITE_QUOTES):
+        return True, "adjacent to quote mark"
+
+    win = text[max(0, start - 20):min(len(text), end + 20)].lower()
+    for mk in _EN_CITE_MARKERS:
+        i = win.find(mk)
+        if i >= 0:
+            mk_pos = max(0, start - 20) + i
+            dist = min(abs(mk_pos - end), abs(mk_pos + len(mk) - start))
+            if dist <= 80:
+                return True, "citation marker: " + mk
+
+    wide = text[max(0, start - 200):min(len(text), end + 200)].lower()
+    for mk in _EN_META_MARKERS:
+        if mk in wide:
+            return True, "meta-discussion marker: " + mk
+    for mk in _EN_PROHIBITION_MARKERS:
+        if mk in wide:
+            return True, "prohibition citation: " + mk
+
+    s = 0
+    for x in (".", "!", "?", ";", "\n"):
+        j = text.rfind(x, 0, start)
+        if j > s:
+            s = j + 1
+    e = len(text)
+    for x in (".", "!", "?", ";", "\n"):
+        j = text.find(x, end)
+        if j >= 0:
+            e = min(e, j)
+    if _EN_LAW.search(text[s:e]):
+        return True, "same sentence cites a law/regulation"
+    return False, ""
+
+
+def _lang_of(text):
+    """自动判定语言：含中日韩字符 ⇒ zh，否则 en"""
+    if re.search(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]", text):
+        return "zh"
+    return "en"
+
+
+def check_text_en(text):
+    """英文检查（结构与 check_text 对齐）"""
+    issues = []
+    for rx, typ, basis, suggestion, sev in FREE_RULES_EN:
+        for m in re.finditer(rx, text, re.I):
+            issues.append({
+                "type": typ,
+                "matched": m.group(0),
+                "position": "char " + str(m.start() + 1),
+                "_start": m.start(),
+                "basis": basis,
+                "suggestion": suggestion,
+                "severity": sev,
+            })
+    # 去重（同位置留最长）
+    by = {}
+    for it in issues:
+        k = it["_start"]
+        if k not in by or len(it["matched"]) > len(by[k]["matched"]):
+            by[k] = it
+    issues = sorted(by.values(), key=lambda x: x["_start"])
+
+    kept, suppressed = [], []
+    for it in issues:
+        st = it["_start"]
+        is_c, why = _en_is_citation(text, st, st + len(it["matched"]))
+        if is_c:
+            it2 = dict(it)
+            it2["suppressed_reason"] = why
+            suppressed.append(it2)
+        else:
+            kept.append(it)
+
+    for it in kept + suppressed:
+        it.pop("_start", None)
+
+    n_risk = sum(1 for i in kept if i["severity"] == "risk")
+    n_warn = sum(1 for i in kept if i["severity"] == "warn")
+    return {
+        "ok": True,
+        "engine": "wanhe-compliance-rules-free-en-v1",
+        "tier": "free",
+        "lang": "en",
+        "verdict": ("High-risk issues found" if n_risk else
+                    ("Review recommended" if n_warn else "No issues found")),
+        "summary": (str(len(kept)) + " issue(s) (high risk " + str(n_risk) +
+                    " / review " + str(n_warn) + ")"),
+        "counts": {"risk": n_risk, "warn": n_warn, "info": 0, "total": len(kept)},
+        "issues": kept,
+        "suppressed": suppressed,
+        "suppressed_note": ("Items above appear in a citation / meta-discussion "
+                            "context and were not counted as violations.")
+        if suppressed else "",
+        "free_rules": len(FREE_RULES_EN),
+        "disclaimer": ("Deterministic rule engine, not legal advice. Absence of "
+                       "findings does not mean the content is compliant."),
+    }
+
+
 TOOLS = [
     {
         "name": "check_content",
@@ -280,7 +508,20 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "text": {"type": "string", "description": "要检查的中文内容（≤2000 字符）"},
+                "text": {"type": "string",
+                         "description": "Content to check (Chinese or English; "
+                                        "max 2000 characters)"},
+                "lang": {
+                    "type": "string",
+                    "enum": ["auto", "zh", "en"],
+                    "description": ("Language of the rules to apply. "
+                                    "'auto' (default) picks zh if the text "
+                                    "contains CJK characters, otherwise en. "
+                                    "zh = China Advertising Law + AI-labeling "
+                                    "rules; en = EU AI Act Art.50 + EU/US "
+                                    "advertising, health, financial and green "
+                                    "claims rules."),
+                },
             },
             "required": ["text"],
         },
@@ -330,11 +571,27 @@ def tool_check_content(args):
         return _err("免费版单次上限 " + str(FREE_MAX_CHARS) + " 字符，"
                     "当前 " + str(len(text)) + " 字符。" + UPGRADE_HINT)
     SESSION["calls"] += 1
-    res = check_text(text)
+    # 语言路由（2026-10-08 新增）：
+    #   MCP 的调用方是 AI Agent，Agent 生态以英文为主
+    #   ⇒ 支持英文规则，才能服务全球线（EU AI Act Art.50 等）
+    lang = str((args or {}).get("lang") or "auto").lower()
+    if lang == "auto":
+        lang = _lang_of(text)
+    if lang == "en":
+        res = check_text_en(text)
+    else:
+        res = check_text(text)
+    res["lang_used"] = lang
     res["free_quota"] = {"used": SESSION["calls"], "limit": FREE_MAX_CALLS}
     if res["issues"]:
-        res["upgrade"] = ("需要金融收益承诺/教育效果承诺/贬低同行/虚假紧迫感等"
-                          "更多规则，或需 AI 标识完整判定 ⇒ 云端版" + UPGRADE_HINT)
+        if lang == "en":
+            res["upgrade"] = ("Full rule set (18 rules incl. financial, "
+                              "green-claims and deep-fake specifics), plus "
+                              "image/C2PA auditing, in the cloud version."
+                              + UPGRADE_HINT)
+        else:
+            res["upgrade"] = ("需要金融收益承诺/教育效果承诺/贬低同行/虚假紧迫感等"
+                              "更多规则，或需 AI 标识完整判定 ⇒ 云端版" + UPGRADE_HINT)
     return _ok(res)
 
 
