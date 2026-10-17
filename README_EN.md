@@ -163,3 +163,37 @@ compliance decisions.
 ## License
 
 MIT
+
+---
+
+## Test it yourself: 27-case Chinese benchmark (downloadable)
+
+**https://wanhetools.top/bench**
+
+27 real Chinese sentences, semantically labeled in 5 classes, each with
+expected verdict, the reason, and our engine's actual output:
+
+| Class | Count | Meaning | Expected |
+|---|---|---|---|
+| `true-positive` | 11 | Real violation (commercial context) | must flag |
+| `false-positive` | 8 | **Normal Chinese phrasing** | **must NOT flag** |
+| `meta-discourse` | 3 | Discussing/listing banned terms | downgrade |
+| `quoted-region` | 4 | Examples inside tables/code blocks | downgrade |
+| `legal-context` | 1 | Quoting the statute itself | downgrade |
+
+**Why it matters**: a bare word list massively over-flags normal Chinese. In our test,
+12 sentences produced 17 hits, and **7 out of 7 fully normal sentences were wrongly flagged**
+(words like 「最新」/「最终」/「兜底」). False-positive rate is not an accuracy issue —
+it decides whether the product is usable at all.
+
+## All rules with legal citations (machine-readable)
+
+**https://wanhetools.top/api/v1/rules**
+
+48 rule groups, **all 48 carrying a legal citation** (`type` / `severity` / `basis` / `locale`),
+covering China's Advertising Law, China's AI-generated content labeling rules,
+EU AI Act Art. 50, California SB 1000, EU UCPD 2005/29/EC, FTC Act §5 and more.
+
+## Free online check (no signup)
+
+**https://wanhetools.top/compliance-check**
