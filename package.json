@@ -1,7 +1,7 @@
 {
   "name": "wanhe-compliance-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for Chinese content compliance checking: advertising-law prohibited terms, AI-generated content labeling (China AI Labeling Measures + GB 45438-2025), and a 17-item compliance self-assessment. Zero external dependencies.",
+  "version": "1.1.4",
+  "description": "MCP server for Chinese content compliance checking: advertising-law prohibited terms, AI-generated content labeling (China AI Labeling Measures + GB 45438-2025), and a 17-item compliance self-assessment. Zero external dependencies. Note: public endpoint temporarily unavailable pending ICP filing.",
   "main": "mcp_compliance_server.py",
   "files": [
     "mcp_compliance_server.py",
