@@ -39,6 +39,17 @@
 
 ---
 
+## 快速开始（本地离线）
+
+```bash
+git clone https://github.com/Wh-bi/wanhe-compliance-mcp
+cd wanhe-compliance-mcp
+python mcp_compliance_server.py --selftest
+```
+
+无需 pip install；有 `mcp` 库时用官方实现，没有则自动降级为内置 stdio JSON-RPC。
+免费邮件自查：`hello@wanhetools.top`（不承诺交付）。
+
 ## 安装
 
 ### 方式一：Claude Desktop
@@ -180,7 +191,7 @@ MIT
 
 ## 在线免费检查（无需注册）
 
-**https://wanhetools.top/compliance-check**
+**https://wh-bi.github.io/wanhe-compliance/**（Pages 基准页；站点备案后恢复在线自查）
 
 贴一段文案进去，逐条返回「命中文本 / **依据哪一条法条** / 修改建议」——
 不是只把词标红。
