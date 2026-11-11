@@ -144,7 +144,7 @@ Agent 会调用 `check_content`，返回类似：
 | 17 项自查问卷 | ✓ | ✓ |
 | 法规变化时 | 需重新拉取 | 无需操作 |
 
-云端版与 API 说明：https://wanhetools.top/compliance-check
+云端版与 API 说明：https://wh-bi.github.io/wanhe-compliance/（Pages 基准页；站点备案后恢复在线自查）
 
 ---
 
@@ -179,7 +179,7 @@ MIT
 
 ## 全部规则与法条依据（机器可读）
 
-**https://wanhetools.top/api/v1/rules**（站点恢复后可用）
+**机器可读规则**：GitHub 仓库与离线包 `rules()`（站点备案后提供在线 `/api/v1/rules`）
 
 **80 组规则**（中文 63 + 英文 17），全部带法条依据（`type` / `severity` / `basis` / `locale`），覆盖：
 
