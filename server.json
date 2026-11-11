@@ -2,17 +2,11 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Wh-bi/wanhe-compliance",
   "title": "AI 内容合规检查（广告法违禁词 + AI 标识）",
-  "description": "中文内容合规检查：广告法违禁词 + AI 标识规则，逐条给出法条依据。Chinese content compliance: ad-law banned terms + AI labeling. Note: public endpoint temporarily unavailable pending ICP filing.",
-  "version": "1.1.4",
-  "websiteUrl": "https://wanhetools.top/compliance-check",
+  "description": "中文内容合规检查：广告法违禁词 + AI 标识规则，逐条给出法条依据。Chinese content compliance: ad-law banned terms + AI labeling. Offline local install (zero external dependencies); hosted endpoint pending ICP filing. 免费邮件自查：hello@wanhetools.top",
+  "version": "1.1.5",
+  "websiteUrl": "https://wh-bi.github.io/wanhe-compliance/",
   "repository": {
     "url": "https://github.com/Wh-bi/wanhe-compliance-mcp",
     "source": "github"
-  },
-  "remotes": [
-    {
-      "type": "streamable-http",
-      "url": "https://mcp.wanhetools.top/mcp"
-    }
-  ]
+  }
 }
